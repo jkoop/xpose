@@ -1,0 +1,24 @@
+#!/bin/bash
+
+OUTPUT=$1
+FRAMERATE="${2:-10}"
+SMOOTHING="${3:-0.5}"
+PERCENTILE="${4:-99}"
+WIDTH="${5:-100}"
+HEIGHT="${6:-100}"
+
+if [ -z "$OUTPUT" ] || [[ "$OUTPUT" = -* ]]; then
+    echo "Usage: $0 <output> [<framerate>] [<smoothing>] [<percentile>] [<width>] [<height>]"
+    echo
+    echo "This script will capture the screen, sort the pixel values, and then configure the output to compensate for a dim picture."
+    echo
+    echo "  output: the x11 output to configure"
+    echo "  framerate: how often to check the screen (default: 10)"
+    echo "  smoothing: how much to smooth the configuration (default: 0.5)"
+    echo "  percentile: what percentile to probe after sorting the pixel values (default: 99)"
+    echo "  width: the width of the capture in pixels (default: 100)"
+    echo "  height: the height of the capture in pixels (default: 100)"
+    exit 1
+fi
+
+ffmpeg -framerate $FRAMERATE -f x11grab -i :0.0 -filter:v scale=$WIDTH:$HEIGHT -f rawvideo -c:v rawvideo -pix_fmt rgb24 -y /dev/stdout 2>/dev/null | xpose-helper $OUTPUT $WIDTH $HEIGHT $SMOOTHING $PERCENTILE | bash
