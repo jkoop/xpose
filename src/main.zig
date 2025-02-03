@@ -13,13 +13,25 @@ pub fn main() !void {
 
     const output = std.os.argv[1];
     const width = std.fmt.parseInt(u32, std.mem.span(std.os.argv[2]), 10) catch {
-        std.debug.panic("Invalid width: {s}", .{std.os.argv[2]});
+        std.debug.print("Invalid width: {s}", .{std.os.argv[2]});
+        return;
     };
     const height = std.fmt.parseInt(u32, std.mem.span(std.os.argv[3]), 10) catch {
-        std.debug.panic("Invalid height: {s}", .{std.os.argv[3]});
+        std.debug.print("Invalid height: {s}", .{std.os.argv[3]});
+        return;
     };
     const smoothing: f32 = if (std.os.argv.len > 4) std.fmt.parseFloat(f32, std.mem.span(std.os.argv[4])) catch 0.9 else 0.9;
-    const percentile: u8 = if (std.os.argv.len > 5) std.fmt.parseInt(u8, std.mem.span(std.os.argv[5]), 10) catch 90 else 90;
+    const percentile: f32 = if (std.os.argv.len > 5) std.fmt.parseFloat(f32, std.mem.span(std.os.argv[5])) catch 99 else 99;
+
+    if (smoothing < 0 or smoothing >= 1) {
+        std.debug.print("Invalid smoothing: {}", .{smoothing});
+        return;
+    }
+
+    if (percentile < 0 or percentile > 100) {
+        std.debug.print("Invalid percentile: {}", .{percentile});
+        return;
+    }
 
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
@@ -57,7 +69,7 @@ pub fn main() !void {
         std.sort.heap(u8, buffer_grey, {}, comptime std.sort.asc(u8));
 
         // consider the percentile'th percentile
-        const ninetieth_pixel: f32 = @as(f32, @floatFromInt(buffer_grey[buffer_grey.len * percentile / 100])) / 255.0;
+        const ninetieth_pixel: f32 = @as(f32, @floatFromInt(buffer_grey[@intFromFloat(@as(f32, @floatFromInt(buffer_grey.len - 1)) * percentile / 100.0)])) / 255.0;
         const new_brightness = 1.0 / ninetieth_pixel;
         brightness = brightness * smoothing + new_brightness * (1.0 - smoothing);
         if (brightness > 100.0) {
